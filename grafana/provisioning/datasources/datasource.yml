@@ -5,11 +5,11 @@ datasources:
     type: mysql
     # Railway MySQL URL — set GF_MYSQL_URL as env var on Railway
     # Format: host:port  (e.g. mysql.railway.internal:3306)
-    url: ${GF_MYSQL_URL:-mysql:3306}
-    database: ${GF_MYSQL_DATABASE:-carbon_db}
-    user: ${GF_MYSQL_USER:-root}
+    url: ${GF_MYSQL_URL}
+    database: ${GF_MYSQL_DATABASE}
+    user: ${GF_MYSQL_USER}
     secureJsonData:
-      password: ${GF_MYSQL_PASSWORD:-RootPass@2024}
+      password: ${GF_MYSQL_PASSWORD}
     jsonData:
       maxOpenConns: 0
       maxIdleConns: 2
