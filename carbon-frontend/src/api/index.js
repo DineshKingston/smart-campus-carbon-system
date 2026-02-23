@@ -1,7 +1,11 @@
 import axios from 'axios'
 
+// In dev:        VITE_API_URL is not set → uses '/api' (Vite proxy → localhost:8080)
+// In production: VITE_API_URL = 'https://your-backend.up.railway.app/api'
+const BASE_URL = import.meta.env.VITE_API_URL || '/api'
+
 const api = axios.create({
-  baseURL: '/api',   // Vite proxy → Spring Boot :8080/api in dev; nginx proxy in production
+  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 
