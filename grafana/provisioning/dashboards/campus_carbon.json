@@ -1,0 +1,403 @@
+{
+    "__inputs": [],
+    "__requires": [],
+    "annotations": {
+        "list": []
+    },
+    "description": "Smart Campus Carbon Footprint Monitoring — Grafana Dashboard",
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "id": null,
+    "links": [],
+    "panels": [
+        {
+            "type": "stat",
+            "title": "Total CO₂ Emitted (kg)",
+            "id": 1,
+            "gridPos": {
+                "h": 4,
+                "w": 5,
+                "x": 0,
+                "y": 0
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "reduceOptions": {
+                    "calcs": [
+                        "sum"
+                    ]
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "green",
+                        "mode": "fixed"
+                    },
+                    "unit": "short",
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT co2_kg FROM emission_records",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Total Emission Records",
+            "id": 2,
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 5,
+                "y": 0
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "reduceOptions": {
+                    "calcs": [
+                        "count"
+                    ]
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "blue",
+                        "mode": "fixed"
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT id FROM emission_records",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "ML Predictions Stored",
+            "id": 3,
+            "gridPos": {
+                "h": 4,
+                "w": 4,
+                "x": 9,
+                "y": 0
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "reduceOptions": {
+                    "calcs": [
+                        "count"
+                    ]
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "purple",
+                        "mode": "fixed"
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT id FROM predictions",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Latest Predicted CO₂ (kg)",
+            "id": 4,
+            "gridPos": {
+                "h": 4,
+                "w": 5,
+                "x": 13,
+                "y": 0
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ]
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "yellow",
+                        "mode": "fixed"
+                    },
+                    "unit": "short"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT predicted_co2 FROM predictions ORDER BY created_at DESC LIMIT 1",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "timeseries",
+            "title": "📈 Monthly CO₂ Trend (Actual Emissions)",
+            "id": 5,
+            "gridPos": {
+                "h": 10,
+                "w": 12,
+                "x": 0,
+                "y": 4
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "single"
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "green",
+                        "mode": "fixed"
+                    },
+                    "custom": {
+                        "lineWidth": 2,
+                        "fillOpacity": 15
+                    },
+                    "unit": "short"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT STR_TO_DATE(CONCAT(month,'-01'),'%Y-%m-%d') AS time, SUM(co2_kg) AS `Total CO2 (kg)` FROM emission_records GROUP BY month ORDER BY month",
+                    "format": "time_series",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "timeseries",
+            "title": "🤖 ML Predictions vs Actuals",
+            "id": 6,
+            "gridPos": {
+                "h": 10,
+                "w": 12,
+                "x": 12,
+                "y": 4
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi"
+                }
+            },
+            "fieldConfig": {
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Predicted CO2"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "orange",
+                                    "mode": "fixed"
+                                }
+                            },
+                            {
+                                "id": "custom.lineStyle",
+                                "value": {
+                                    "dash": [
+                                        8,
+                                        4
+                                    ],
+                                    "fill": "dash"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Actual CO2"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "green",
+                                    "mode": "fixed"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT STR_TO_DATE(CONCAT(month,'-01'),'%Y-%m-%d') AS time, SUM(co2_kg) AS `Actual CO2` FROM emission_records GROUP BY month ORDER BY month",
+                    "format": "time_series",
+                    "refId": "A"
+                },
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT STR_TO_DATE(CONCAT(month,'-01'),'%Y-%m-%d') AS time, predicted_co2 AS `Predicted CO2` FROM predictions ORDER BY month",
+                    "format": "time_series",
+                    "refId": "B"
+                }
+            ]
+        },
+        {
+            "type": "piechart",
+            "title": "🥧 CO₂ by Emission Category",
+            "id": 7,
+            "gridPos": {
+                "h": 9,
+                "w": 10,
+                "x": 0,
+                "y": 14
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right",
+                    "values": [
+                        "percent"
+                    ]
+                },
+                "pieType": "donut"
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT ec.name AS metric, SUM(er.co2_kg) AS value FROM emission_records er JOIN emission_categories ec ON er.category_id = ec.id GROUP BY ec.name ORDER BY value DESC",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "barchart",
+            "title": "📊 Top 10 Emission Months",
+            "id": 8,
+            "gridPos": {
+                "h": 9,
+                "w": 14,
+                "x": 10,
+                "y": 14
+            },
+            "options": {
+                "xField": "month",
+                "orientation": "vertical",
+                "groupWidth": 0.7,
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "teal",
+                        "mode": "fixed"
+                    },
+                    "unit": "short"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT month, SUM(co2_kg) AS `CO2 (kg)` FROM emission_records GROUP BY month ORDER BY SUM(co2_kg) DESC LIMIT 10",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "type": "table",
+            "title": "🔖 Model Version Tracking (Predictions Table)",
+            "id": 9,
+            "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 23
+            },
+            "options": {
+                "showHeader": true
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "align": "left"
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "datasource": "MySQL-CarbonDB",
+                    "rawSql": "SELECT id, month, predicted_co2, model_used, created_at FROM predictions ORDER BY created_at DESC LIMIT 20",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 38,
+    "tags": [
+        "carbon",
+        "campus",
+        "ml",
+        "sustainability"
+    ],
+    "templating": {
+        "list": []
+    },
+    "time": {
+        "from": "now-2y",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "Smart Campus Carbon Tracker",
+    "uid": "campus-carbon-v1",
+    "version": 1
+}
