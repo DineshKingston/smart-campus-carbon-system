@@ -1,5 +1,7 @@
 import { useAuth } from '../context/AuthContext'
 
+const GRAFANA_URL = import.meta.env.VITE_GRAFANA_URL || 'http://localhost:3001'
+
 export default function Topbar({ title }) {
     const { user } = useAuth()
     return (
@@ -9,7 +11,7 @@ export default function Topbar({ title }) {
                 <span className="badge badge-green topbar-live">🟢 Live</span>
                 <span className="badge badge-blue topbar-role">{user?.role}</span>
                 <a
-                    href="http://localhost:3001"
+                    href={GRAFANA_URL}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-secondary topbar-grafana"
