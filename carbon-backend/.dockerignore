@@ -1,0 +1,31 @@
+# ─── Git / CI ────────────────────────────────────────────────
+.git/
+.github/
+.gitignore
+
+# ─── Java / Maven build output ───────────────────────────────
+target/
+*.class
+*.jar
+
+# ─── IDE / Editor ────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+
+# ─── OS Files ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs & Temp ─────────────────────────────────────────────
+*.log
+logs.txt
+full_logs.txt
+*.tmp
+
+# ─── Test/dev files ──────────────────────────────────────────
+reset_password.sql
+hash.txt
+final_hash.txt
+campus_sustainability_dataset.csv

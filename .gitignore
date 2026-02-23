@@ -1,29 +1,36 @@
-# ─── Java / Maven ────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+#  Smart Campus Carbon Tracker — .gitignore
+#  Covers: Java/Maven · Node/React · Python/Flask · Docker · IDE · OS
+# ═══════════════════════════════════════════════════════════
+
+# ─── Java / Maven ───────────────────────────────────────────
 target/
+!.mvn/wrapper/maven-wrapper.jar
 *.class
 *.jar
 *.war
 *.ear
-*.nar
-*.zip
-*.tar.gz
-*.rar
 hs_err_pid*
-
-# ─── Maven wrapper ───────────────────────────────────────────
 .mvn/wrapper/maven-wrapper.jar
 
-# ─── Node.js / React ─────────────────────────────────────────
+# ─── Node.js / React ────────────────────────────────────────
 node_modules/
 dist/
 build/
 .npm
-*.local
-carbon-frontend/.env
-carbon-frontend/.env.local
-carbon-frontend/.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# ─── Python / Flask / ML ─────────────────────────────────────
+# ─── Environment & Secrets ──────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+carbon-frontend/.env*
+
+# ─── Python / Flask / ML ────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -33,35 +40,54 @@ __pycache__/
 venv/
 .venv/
 env/
+ENV/
 *.pkl
 *.pickle
-carbon-ml/*.pkl
+carbon-ml/dataset.csv
 
-# ─── IDE / Editor ────────────────────────────────────────────
+# ─── IDE / Editor ───────────────────────────────────────────
 .idea/
 *.iml
 *.iws
+*.ipr
 .project
 .classpath
 .settings/
 .vscode/
+*.swp
+*.swo
 
-# ─── Logs & Temp Files ───────────────────────────────────────
+# ─── OS Files ───────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Thumbs.db:encryptable
+desktop.ini
+$RECYCLE.BIN/
+
+# ─── Logs & Temp ────────────────────────────────────────────
 *.log
+logs/
 logs.txt
 full_logs.txt
-hash.txt
-final_hash.txt
 *.tmp
 *.temp
+*.bak
 
-# ─── Sensitive / Utility SQL ─────────────────────────────────
+# ─── Sensitive / Dev-only SQL ───────────────────────────────
 reset_password.sql
 
-# ─── OS Files ────────────────────────────────────────────────
-.DS_Store
-Thumbs.db
-desktop.ini
+# ─── Hash / Build info files ────────────────────────────────
+hash.txt
+final_hash.txt
 
-# ─── Docker volumes (local) ──────────────────────────────────
+# ─── Docker local volumes ───────────────────────────────────
 .docker/
+
+# ─── GitHub Actions runner (self-hosted) ────────────────────
+_work/
+.runner
+.credentials
