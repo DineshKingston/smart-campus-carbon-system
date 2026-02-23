@@ -1,84 +1,52 @@
 # ════════════════════════════════════════════════════════════
-# CD — Continuous Deployment
-# Runs ONLY on push to main/master (after CI passes)
-# Deploys all Docker services to your remote server via SSH
+# CD — Continuous Deployment (Windows Self-Hosted Runner)
 #
-# Required GitHub Secrets (Settings → Secrets → Actions):
-#   SERVER_HOST      — IP or domain of your server
-#   SERVER_USER      — SSH username (e.g. ubuntu / root)
-#   SERVER_SSH_KEY   — Private SSH key (contents of id_rsa)
-#   SERVER_PORT      — SSH port (usually 22)
-#   DEPLOY_PATH      — Path on server (e.g. /home/ubuntu/carbon)
+# Runs on YOUR Windows PC directly when push to main/master.
+# No SSH, no secrets needed — runs locally via GitHub Runner.
+#
+# Setup (one time):
+#   1. GitHub Repo → Settings → Actions → Runners → New self-hosted runner
+#   2. Select Windows → run the 3 commands shown on the page
+#   3. The runner registers your PC and listens for jobs
 # ════════════════════════════════════════════════════════════
 
-name: CD — Deploy to Server
+name: CD — Deploy (Windows Self-Hosted)
 
 on:
   push:
     branches: [ main, master ]
 
-# Only run CD after CI passes
-  workflow_run:
-    workflows: [ "CI — Build & Test" ]
-    types: [ completed ]
-    branches: [ main, master ]
-
 jobs:
   deploy:
-    name: Deploy via SSH
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+    name: Redeploy on Windows
+    runs-on: self-hosted        
 
     steps:
-      - name: Checkout code
+      - name: Checkout latest code
         uses: actions/checkout@v4
 
-      # ── Copy project files to server ─────────────────────
-      - name: Copy files to server via rsync
-        uses: burnett01/rsync-deployments@7.0.1
-        with:
-          switches: -avzr --delete --exclude='target/' --exclude='node_modules/' --exclude='.git/'
-          path: ./
-          remote_path: ${{ secrets.DEPLOY_PATH }}
-          remote_host: ${{ secrets.SERVER_HOST }}
-          remote_port: ${{ secrets.SERVER_PORT }}
-          remote_user: ${{ secrets.SERVER_USER }}
-          remote_key: ${{ secrets.SERVER_SSH_KEY }}
+      - name: Stop existing containers
+        working-directory: ${{ github.workspace }}
+        run: docker-compose down
+        shell: powershell
 
-      # ── SSH in and run docker-compose ─────────────────────
-      - name: Deploy with Docker Compose
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          port: ${{ secrets.SERVER_PORT }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            echo "📦 Navigating to deploy path..."
-            cd ${{ secrets.DEPLOY_PATH }}
+      - name: Rebuild and start all services
+        working-directory: ${{ github.workspace }}
+        run: docker-compose up -d --build --remove-orphans
+        shell: powershell
 
-            echo "🐳 Pulling latest images & rebuilding..."
-            docker-compose pull --ignore-pull-failures
-            docker-compose up -d --build --remove-orphans
-
-            echo "⏳ Waiting for services to be healthy..."
-            sleep 15
-
-            echo "✅ Container status:"
-            docker-compose ps
-
-            echo "🧹 Cleaning up unused Docker images..."
-            docker image prune -f
-
-      # ── Verify deployment ─────────────────────────────────
-      - name: Verify backend is live
+      - name: Wait for backend to be ready
+        shell: powershell
         run: |
-          sleep 10
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            http://${{ secrets.SERVER_HOST }}:8080/api/predictions/health)
-          if [ "$STATUS" = "200" ]; then
-            echo "✅ Backend is live (HTTP $STATUS)"
-          else
-            echo "❌ Backend health check failed (HTTP $STATUS)"
+          Start-Sleep -Seconds 20
+          $response = Invoke-WebRequest -Uri "http://localhost:8080/api/predictions/health" -UseBasicParsing -ErrorAction SilentlyContinue
+          if ($response.StatusCode -eq 200) {
+            Write-Host "✅ Backend is live!"
+          } else {
+            Write-Host "❌ Backend health check failed"
             exit 1
-          fi
+          }
+
+      - name: Show running containers
+        run: docker-compose ps
+        shell: powershell

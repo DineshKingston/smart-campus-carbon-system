@@ -331,30 +331,3 @@ Push to main/master
 | **Frontend** | Node 18 → `npm ci` → `npm run build` → upload `dist/` |
 | **ML Service** | Python 3.11 → pip install → syntax check → train → health ping |
 
-### CD — Required GitHub Secrets
-
-**Repo → Settings → Secrets and variables → Actions → New secret**
-
-| Secret | Example | Description |
-|---|---|---|
-| `SERVER_HOST` | `192.168.1.100` | Server IP or domain |
-| `SERVER_USER` | `ubuntu` | SSH username |
-| `SERVER_SSH_KEY` | *(contents of `~/.ssh/id_rsa`)* | Private key |
-| `SERVER_PORT` | `22` | SSH port |
-| `DEPLOY_PATH` | `/home/ubuntu/carbon` | Deploy path on server |
-
-### First Time Setup
-
-```bash
-# Push to GitHub
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin master
-
-# Then add the 5 secrets above → every push auto-deploys!
-```
-
-> Remember to replace `YOUR_USERNAME/YOUR_REPO` in the badge URLs at the top of this file.
-
----
-
-*Smart Campus Carbon Tracker · Built with ♥ using Spring Boot, React & Flask*
