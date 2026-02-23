@@ -1,0 +1,67 @@
+# ─── Java / Maven ────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+
+# ─── Maven wrapper ───────────────────────────────────────────
+.mvn/wrapper/maven-wrapper.jar
+
+# ─── Node.js / React ─────────────────────────────────────────
+node_modules/
+dist/
+build/
+.npm
+*.local
+carbon-frontend/.env
+carbon-frontend/.env.local
+carbon-frontend/.env.*.local
+
+# ─── Python / Flask / ML ─────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.Python
+venv/
+.venv/
+env/
+*.pkl
+*.pickle
+carbon-ml/*.pkl
+
+# ─── IDE / Editor ────────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+
+# ─── Logs & Temp Files ───────────────────────────────────────
+*.log
+logs.txt
+full_logs.txt
+hash.txt
+final_hash.txt
+*.tmp
+*.temp
+
+# ─── Sensitive / Utility SQL ─────────────────────────────────
+reset_password.sql
+
+# ─── OS Files ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Docker volumes (local) ──────────────────────────────────
+.docker/
