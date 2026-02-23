@@ -10,7 +10,10 @@ USER root
 
 # Copy all provisioning config into the image
 COPY provisioning /etc/grafana/provisioning
-COPY dashboards /var/lib/grafana/dashboards
+
+RUN mkdir -p /var/lib/grafana/dashboards
+
+COPY provisioning/dashboards /var/lib/grafana/dashboards
 
 # Grafana reads these env vars for admin credentials
 # Set them in Railway: GF_SECURITY_ADMIN_USER, GF_SECURITY_ADMIN_PASSWORD
