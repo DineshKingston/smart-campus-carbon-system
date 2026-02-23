@@ -1,52 +1,38 @@
 # ════════════════════════════════════════════════════════════
-# CD — Continuous Deployment (Windows Self-Hosted Runner)
+# CD — Continuous Deployment
 #
-# Runs on YOUR Windows PC directly when push to main/master.
-# No SSH, no secrets needed — runs locally via GitHub Runner.
+# ✅ DEPLOYMENT IS AUTOMATIC — No workflow needed!
 #
-# Setup (one time):
-#   1. GitHub Repo → Settings → Actions → Runners → New self-hosted runner
-#   2. Select Windows → run the 3 commands shown on the page
-#   3. The runner registers your PC and listens for jobs
+# Railway  → Watches GitHub repo → auto-deploys on push:
+#            • Backend  (Spring Boot)
+#            • ML Service (Flask)
+#            • Grafana
+#            • MySQL (managed)
+#
+# Vercel   → Watches GitHub repo → auto-deploys on push:
+#            • Frontend (React + Vite)
+#
+# This file is kept as documentation only.
 # ════════════════════════════════════════════════════════════
 
-name: CD — Deploy (Windows Self-Hosted)
+name: CD — Deploy Info
 
 on:
   push:
     branches: [ main, master ]
 
 jobs:
-  deploy:
-    name: Redeploy on Windows
-    runs-on: self-hosted        
-
+  deploy-info:
+    name: Deployment Info
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout latest code
-        uses: actions/checkout@v4
-
-      - name: Stop existing containers
-        working-directory: ${{ github.workspace }}
-        run: docker-compose down
-        shell: powershell
-
-      - name: Rebuild and start all services
-        working-directory: ${{ github.workspace }}
-        run: docker-compose up -d --build --remove-orphans
-        shell: powershell
-
-      - name: Wait for backend to be ready
-        shell: powershell
+      - name: Show deployment info
         run: |
-          Start-Sleep -Seconds 20
-          $response = Invoke-WebRequest -Uri "http://localhost:8080/api/predictions/health" -UseBasicParsing -ErrorAction SilentlyContinue
-          if ($response.StatusCode -eq 200) {
-            Write-Host "✅ Backend is live!"
-          } else {
-            Write-Host "❌ Backend health check failed"
-            exit 1
-          }
-
-      - name: Show running containers
-        run: docker-compose ps
-        shell: powershell
+          echo "════════════════════════════════════════"
+          echo "  Deployment triggered by: ${{ github.actor }}"
+          echo "  Commit: ${{ github.sha }}"
+          echo "  Branch: ${{ github.ref_name }}"
+          echo "════════════════════════════════════════"
+          echo "  Railway:  Auto-deploying Backend, ML, Grafana"
+          echo "  Vercel:   Auto-deploying Frontend"
+          echo "════════════════════════════════════════"

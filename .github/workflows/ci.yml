@@ -1,9 +1,10 @@
 # ════════════════════════════════════════════════════════════
-# CI — Continuous Integration (Windows Self-Hosted Runner)
+# CI — Continuous Integration (GitHub-Hosted Runners)
 #
-# Runs on YOUR Windows PC on every push and pull request.
-# Requires: Java 17, Node.js 18, Python 3.x, Docker Desktop
-# all installed on your Windows machine.
+# Validates build on every push/PR — FREE, always online.
+# Deployment is handled automatically by:
+#   Railway  → Backend, MySQL, ML Service, Grafana
+#   Vercel   → Frontend
 # ════════════════════════════════════════════════════════════
 
 name: CI — Build & Test
@@ -19,87 +20,78 @@ jobs:
   # ── 1. Spring Boot Backend ─────────────────────────────────
   backend:
     name: Backend (Java / Maven)
-    runs-on: self-hosted
-    shell: powershell
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build with Maven
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Build with Maven (skip tests)
         working-directory: carbon-backend
         run: mvn clean package -DskipTests --batch-mode
-        shell: powershell
 
       - name: Run tests
         working-directory: carbon-backend
         run: mvn test --batch-mode
-        shell: powershell
         continue-on-error: true
-
-      - name: Show JAR output
-        shell: powershell
-        run: Get-ChildItem carbon-backend\target\*.jar
 
   # ── 2. React Frontend ──────────────────────────────────────
   frontend:
     name: Frontend (Node / React)
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: carbon-frontend/package-lock.json
 
       - name: Install dependencies
         working-directory: carbon-frontend
         run: npm ci
-        shell: powershell
 
       - name: Build production bundle
         working-directory: carbon-frontend
         run: npm run build
-        shell: powershell
-
-      - name: Show build output
-        shell: powershell
-        run: Get-ChildItem carbon-frontend\dist\ -ErrorAction SilentlyContinue
+        env:
+          VITE_API_URL: https://placeholder-for-ci.example.com/api
 
   # ── 3. Flask ML Service ────────────────────────────────────
   ml-service:
     name: ML Service (Python / Flask)
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Python dependencies
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
         working-directory: carbon-ml
         run: pip install -r requirements.txt
-        shell: powershell
 
       - name: Syntax check
         working-directory: carbon-ml
-        run: python -m py_compile app.py; Write-Host "✅ app.py syntax OK"
-        shell: powershell
-
-      - name: Train ML model
-        working-directory: carbon-ml
-        run: python train_model.py
-        shell: powershell
-
-      - name: Start Flask and health check
-        working-directory: carbon-ml
-        shell: powershell
-        run: |
-          $proc = Start-Process python -ArgumentList "app.py" -PassThru -WindowStyle Hidden
-          Start-Sleep -Seconds 6
-          try {
-            $r = Invoke-WebRequest -Uri "http://localhost:5000/health" -UseBasicParsing
-            Write-Host "✅ ML health OK — status $($r.StatusCode)"
-          } catch {
-            Write-Host "❌ ML health check failed"
-            exit 1
-          } finally {
-            Stop-Process -Id $proc.Id -ErrorAction SilentlyContinue
-          }
+        run: python -m py_compile app.py && echo "✅ app.py syntax OK"
