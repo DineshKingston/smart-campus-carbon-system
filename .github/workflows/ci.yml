@@ -1,7 +1,9 @@
 # ════════════════════════════════════════════════════════════
-# CI — Continuous Integration
-# Runs on every push and pull request to main / master
-# Steps: Build Backend → Build Frontend → Test ML Service
+# CI — Continuous Integration (Windows Self-Hosted Runner)
+#
+# Runs on YOUR Windows PC on every push and pull request.
+# Requires: Java 17, Node.js 18, Python 3.x, Docker Desktop
+# all installed on your Windows machine.
 # ════════════════════════════════════════════════════════════
 
 name: CI — Build & Test
@@ -17,96 +19,87 @@ jobs:
   # ── 1. Spring Boot Backend ─────────────────────────────────
   backend:
     name: Backend (Java / Maven)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    shell: powershell
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Build with Maven (skip tests for speed)
+      - name: Build with Maven
         working-directory: carbon-backend
         run: mvn clean package -DskipTests --batch-mode
+        shell: powershell
 
-      - name: Run unit tests
+      - name: Run tests
         working-directory: carbon-backend
         run: mvn test --batch-mode
-        continue-on-error: true   # Don't fail if no tests exist yet
+        shell: powershell
+        continue-on-error: true
 
-      - name: Upload backend JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar
-          path: carbon-backend/target/*.jar
-          retention-days: 7
+      - name: Show JAR output
+        shell: powershell
+        run: Get-ChildItem carbon-backend\target\*.jar
 
   # ── 2. React Frontend ──────────────────────────────────────
   frontend:
     name: Frontend (Node / React)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Node.js 18
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: carbon-frontend/package-lock.json
 
       - name: Install dependencies
         working-directory: carbon-frontend
         run: npm ci
+        shell: powershell
 
       - name: Build production bundle
         working-directory: carbon-frontend
         run: npm run build
+        shell: powershell
 
-      - name: Upload frontend build
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: carbon-frontend/dist/
-          retention-days: 7
+      - name: Show build output
+        shell: powershell
+        run: Get-ChildItem carbon-frontend\dist\ -ErrorAction SilentlyContinue
 
   # ── 3. Flask ML Service ────────────────────────────────────
   ml-service:
     name: ML Service (Python / Flask)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
+      - name: Install Python dependencies
         working-directory: carbon-ml
         run: pip install -r requirements.txt
+        shell: powershell
 
       - name: Syntax check
         working-directory: carbon-ml
-        run: python -m py_compile app.py && echo "✅ app.py syntax OK"
+        run: python -m py_compile app.py; Write-Host "✅ app.py syntax OK"
+        shell: powershell
 
-      - name: Train model
+      - name: Train ML model
         working-directory: carbon-ml
         run: python train_model.py
+        shell: powershell
 
-      - name: Health check (start Flask + ping /health)
+      - name: Start Flask and health check
         working-directory: carbon-ml
+        shell: powershell
         run: |
-          python app.py &
-          sleep 5
-          curl --fail http://localhost:5000/health && echo "✅ ML health OK"
+          $proc = Start-Process python -ArgumentList "app.py" -PassThru -WindowStyle Hidden
+          Start-Sleep -Seconds 6
+          try {
+            $r = Invoke-WebRequest -Uri "http://localhost:5000/health" -UseBasicParsing
+            Write-Host "✅ ML health OK — status $($r.StatusCode)"
+          } catch {
+            Write-Host "❌ ML health check failed"
+            exit 1
+          } finally {
+            Stop-Process -Id $proc.Id -ErrorAction SilentlyContinue
+          }
