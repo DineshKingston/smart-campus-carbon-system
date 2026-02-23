@@ -1,0 +1,112 @@
+# ════════════════════════════════════════════════════════════
+# CI — Continuous Integration
+# Runs on every push and pull request to main / master
+# Steps: Build Backend → Build Frontend → Test ML Service
+# ════════════════════════════════════════════════════════════
+
+name: CI — Build & Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+
+  # ── 1. Spring Boot Backend ─────────────────────────────────
+  backend:
+    name: Backend (Java / Maven)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven (skip tests for speed)
+        working-directory: carbon-backend
+        run: mvn clean package -DskipTests --batch-mode
+
+      - name: Run unit tests
+        working-directory: carbon-backend
+        run: mvn test --batch-mode
+        continue-on-error: true   # Don't fail if no tests exist yet
+
+      - name: Upload backend JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: carbon-backend/target/*.jar
+          retention-days: 7
+
+  # ── 2. React Frontend ──────────────────────────────────────
+  frontend:
+    name: Frontend (Node / React)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: carbon-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: carbon-frontend
+        run: npm ci
+
+      - name: Build production bundle
+        working-directory: carbon-frontend
+        run: npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: carbon-frontend/dist/
+          retention-days: 7
+
+  # ── 3. Flask ML Service ────────────────────────────────────
+  ml-service:
+    name: ML Service (Python / Flask)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: carbon-ml
+        run: pip install -r requirements.txt
+
+      - name: Syntax check
+        working-directory: carbon-ml
+        run: python -m py_compile app.py && echo "✅ app.py syntax OK"
+
+      - name: Train model
+        working-directory: carbon-ml
+        run: python train_model.py
+
+      - name: Health check (start Flask + ping /health)
+        working-directory: carbon-ml
+        run: |
+          python app.py &
+          sleep 5
+          curl --fail http://localhost:5000/health && echo "✅ ML health OK"

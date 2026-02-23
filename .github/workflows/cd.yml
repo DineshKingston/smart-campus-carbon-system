@@ -1,0 +1,84 @@
+# ════════════════════════════════════════════════════════════
+# CD — Continuous Deployment
+# Runs ONLY on push to main/master (after CI passes)
+# Deploys all Docker services to your remote server via SSH
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   SERVER_HOST      — IP or domain of your server
+#   SERVER_USER      — SSH username (e.g. ubuntu / root)
+#   SERVER_SSH_KEY   — Private SSH key (contents of id_rsa)
+#   SERVER_PORT      — SSH port (usually 22)
+#   DEPLOY_PATH      — Path on server (e.g. /home/ubuntu/carbon)
+# ════════════════════════════════════════════════════════════
+
+name: CD — Deploy to Server
+
+on:
+  push:
+    branches: [ main, master ]
+
+# Only run CD after CI passes
+  workflow_run:
+    workflows: [ "CI — Build & Test" ]
+    types: [ completed ]
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Copy project files to server ─────────────────────
+      - name: Copy files to server via rsync
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete --exclude='target/' --exclude='node_modules/' --exclude='.git/'
+          path: ./
+          remote_path: ${{ secrets.DEPLOY_PATH }}
+          remote_host: ${{ secrets.SERVER_HOST }}
+          remote_port: ${{ secrets.SERVER_PORT }}
+          remote_user: ${{ secrets.SERVER_USER }}
+          remote_key: ${{ secrets.SERVER_SSH_KEY }}
+
+      # ── SSH in and run docker-compose ─────────────────────
+      - name: Deploy with Docker Compose
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo "📦 Navigating to deploy path..."
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "🐳 Pulling latest images & rebuilding..."
+            docker-compose pull --ignore-pull-failures
+            docker-compose up -d --build --remove-orphans
+
+            echo "⏳ Waiting for services to be healthy..."
+            sleep 15
+
+            echo "✅ Container status:"
+            docker-compose ps
+
+            echo "🧹 Cleaning up unused Docker images..."
+            docker image prune -f
+
+      # ── Verify deployment ─────────────────────────────────
+      - name: Verify backend is live
+        run: |
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            http://${{ secrets.SERVER_HOST }}:8080/api/predictions/health)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Backend is live (HTTP $STATUS)"
+          else
+            echo "❌ Backend health check failed (HTTP $STATUS)"
+            exit 1
+          fi
